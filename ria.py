@@ -123,10 +123,13 @@ def generate_all_data(start_date='2015-01-01', end_date='2024-12-31'):
     cases = cases + np.random.poisson(10, n_months)
     cases = np.round(cases).astype(int)
     
-    # Add random outbreaks
+    # Add random outbreaks - FIXED VERSION
+    # Convert cases to numpy array for element-wise operations
+    cases_array = cases.copy()
     for i in range(n_months):
         if np.random.random() < 0.02:
-            cases[i] = cases[i] * np.random.uniform(2, 5)
+            cases_array[i] = int(cases_array[i] * np.random.uniform(2, 5))
+    cases = cases_array
     
     # 1.5 Create DataFrames
     climate_df = pd.DataFrame({
