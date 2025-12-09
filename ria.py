@@ -117,11 +117,12 @@ def generate_all_data(start_date='2015-01-01', end_date='2024-12-31'):
     irs_effect = 1 - (irs_coverage / 100) * 0.4
     seasonality = 0.8 + 0.4 * np.sin(2 * np.pi * months / 12 - np.pi/2)
     
-        # Add random outbreaks - VECTORIZED VERSION (NO INDEXING ERROR)
+            # Add random outbreaks - VECTORIZED VERSION (NO INDEXING ERROR)
     outbreak_mask = np.random.random(n_months) < 0.02
     outbreak_multiplier = np.random.uniform(2, 5, n_months)
     cases = np.where(outbreak_mask, 
                      np.round(cases.copy() * outbreak_multiplier).astype(int), 
+                     cases)
                      
     # 1.5 Create DataFrames
     climate_df = pd.DataFrame({
@@ -1242,5 +1243,6 @@ if __name__ == "__main__":
     print("="*60)
     print("\nAll outputs saved in the project folders.")
     print("Check 'visualizations/' for graphs and 'data/' for forecast CSV.")
+
 
 
