@@ -121,8 +121,8 @@ def generate_all_data(start_date='2015-01-01', end_date='2024-12-31'):
     outbreak_mask = np.random.random(n_months) < 0.02
     outbreak_multiplier = np.random.uniform(2, 5, n_months)
     cases = np.where(outbreak_mask, 
-                     np.round(cases * outbreak_multiplier).astype(int), 
-                     cases)
+                     np.round(cases.copy() * outbreak_multiplier).astype(int), 
+                     
     # 1.5 Create DataFrames
     climate_df = pd.DataFrame({
         'date': dates,
@@ -1242,4 +1242,5 @@ if __name__ == "__main__":
     print("="*60)
     print("\nAll outputs saved in the project folders.")
     print("Check 'visualizations/' for graphs and 'data/' for forecast CSV.")
+
 
