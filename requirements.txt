@@ -9,4 +9,5 @@ joblib
 jupyter
 notebook
 ipython
+statsmodels
 tqdm
