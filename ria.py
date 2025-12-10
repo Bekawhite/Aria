@@ -67,6 +67,175 @@ import pickle
 import zipfile
 import tempfile
 
+
+# ============================================================================
+# NEW: MISSING CLASS DEFINITIONS TO FIX ERRORS
+# ============================================================================
+
+class UserPermissions:
+    """User permissions and role management"""
+    
+    ROLES = {
+        'field_worker': 'Field Worker',
+        'district_officer': 'District Officer', 
+        'regional_manager': 'Regional Manager',
+        'national_director': 'National Director',
+        'data_scientist': 'Data Scientist',
+        'public_health': 'Public Health Officer'
+    }
+    
+    @staticmethod
+    def get_role_name(role_code):
+        """Get display name for role code"""
+        return UserPermissions.ROLES.get(role_code, role_code)
+    
+    @staticmethod
+    def get_role_permissions(role):
+        """Get permissions for specific role"""
+        permissions = {
+            'field_worker': ['view_data', 'submit_reports', 'view_alerts'],
+            'district_officer': ['view_data', 'submit_reports', 'view_alerts', 'approve_reports', 'generate_reports'],
+            'regional_manager': ['view_data', 'submit_reports', 'view_alerts', 'approve_reports', 'generate_reports', 'manage_users', 'configure_system'],
+            'national_director': ['view_data', 'submit_reports', 'view_alerts', 'approve_reports', 'generate_reports', 'manage_users', 'configure_system', 'export_data', 'system_admin'],
+            'data_scientist': ['view_data', 'generate_reports', 'train_models', 'configure_models', 'export_data'],
+            'public_health': ['view_data', 'view_alerts', 'generate_reports', 'export_data']
+        }
+        return permissions.get(role, [])
+
+class DataQualityMonitor:
+    """Monitor data quality and integrity"""
+    
+    @staticmethod
+    def check_data_quality(data):
+        """Check quality of uploaded data"""
+        if data is None:
+            return {'status': 'error', 'message': 'No data provided'}
+        
+        checks = {
+            'row_count': len(data),
+            'column_count': len(data.columns),
+            'missing_values': data.isnull().sum().sum(),
+            'duplicates': data.duplicated().sum(),
+            'date_range': f"{data['date'].min()} to {data['date'].max()}" if 'date' in data.columns else 'N/A'
+        }
+        
+        return {'status': 'success', 'checks': checks}
+
+class AlertSystem:
+    """System for generating and managing alerts"""
+    
+    @staticmethod
+    def generate_alerts(data):
+        """Generate alerts based on data analysis"""
+        alerts = []
+        
+        if data is not None and 'malaria_cases' in data.columns:
+            # Example alert logic
+            avg_cases = data['malaria_cases'].mean()
+            latest_cases = data['malaria_cases'].iloc[-1] if len(data) > 0 else 0
+            
+            if latest_cases > avg_cases * 1.5:
+                alerts.append({
+                    'level': 'HIGH',
+                    'message': f'Malaria cases spike detected: {latest_cases} cases (average: {avg_cases:.1f})',
+                    'timestamp': datetime.now().isoformat(),
+                    'type': 'spike_alert'
+                })
+            
+            if 'nddi' in data.columns and data['nddi'].mean() > 0.6:
+                alerts.append({
+                    'level': 'MEDIUM',
+                    'message': 'High NDDI detected - potential drought conditions',
+                    'timestamp': datetime.now().isoformat(),
+                    'type': 'environment_alert'
+                })
+        
+        return alerts
+
+class MobileInterface:
+    """Mobile-specific interface components"""
+    
+    @staticmethod
+    def mobile_view():
+        """Display mobile-optimized interface"""
+        st.title("📱 Mobile Field View")
+        st.info("Mobile-optimized interface for field workers")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("📝 New Report", use_container_width=True):
+                st.session_state.show_report_form = True
+        with col2:
+            if st.button("📍 GPS Location", use_container_width=True):
+                st.session_state.get_gps = True
+        
+        st.markdown("---")
+        st.subheader("Quick Actions")
+        
+        actions = [
+            ("🦟", "Mosquito Report", "Report mosquito breeding sites"),
+            ("🏥", "Case Report", "Report new malaria cases"),
+            ("🛏️", "Bed Net Check", "Record bed net distribution"),
+            ("🌧️", "Weather", "Record local weather conditions")
+        ]
+        
+        cols = st.columns(4)
+        for idx, (icon, title, desc) in enumerate(actions):
+            with cols[idx]:
+                st.button(f"{icon}\n{title}", use_container_width=True, 
+                         help=desc, key=f"mobile_action_{idx}")
+        
+        if st.button("Back to Desktop View"):
+            st.session_state.mobile_view = False
+            st.rerun()
+
+class RealDataImporter:
+    """Import real data from various sources"""
+    
+    @staticmethod
+    def import_csv_file():
+        """Import data from CSV file"""
+        uploaded_file = st.file_uploader("Choose a CSV file", type=['csv', 'xlsx', 'xls'])
+        if uploaded_file is not None:
+            try:
+                if uploaded_file.name.endswith('.csv'):
+                    data = pd.read_csv(uploaded_file)
+                else:
+                    data = pd.read_excel(uploaded_file)
+                return data
+            except Exception as e:
+                st.error(f"Error reading file: {str(e)}")
+        return None
+    
+    @staticmethod  
+    def import_sample_data(country):
+        """Import sample data for specific country"""
+        # Generate sample data based on country
+        dates = pd.date_range(start='2023-01-01', end='2024-01-01', freq='M')
+        
+        if country == "Ghana":
+            base_cases = 1000
+        elif country == "Kenya":
+            base_cases = 800
+        elif country == "Uganda":
+            base_cases = 1200
+        else:
+            base_cases = 500
+        
+        data = pd.DataFrame({
+            'date': dates,
+            'malaria_cases': [base_cases + np.random.poisson(200) for _ in range(len(dates))],
+            'temperature': np.random.uniform(25, 35, len(dates)),
+            'rainfall': np.random.exponential(50, len(dates)),
+            'humidity': np.random.uniform(60, 90, len(dates)),
+            'nddi': np.random.uniform(0.3, 0.7, len(dates)),
+            'llin_coverage': np.random.uniform(30, 80, len(dates)),
+            'irs_coverage': np.random.uniform(20, 60, len(dates)),
+            'country': country
+        })
+        
+        return data
+
 # ============================================================================
 # ENHANCEMENT 1: REAL-TIME API INTEGRATIONS
 # ============================================================================
@@ -4024,3 +4193,4 @@ def show_climate_projections():
 
 if __name__ == "__main__":
     main()
+
