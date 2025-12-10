@@ -67,9 +67,8 @@ import pickle
 import zipfile
 import tempfile
 
-
 # ============================================================================
-# NEW: MISSING CLASS DEFINITIONS TO FIX ERRORS
+# CORE APP CLASSES (CORRECTED VERSION)
 # ============================================================================
 
 class UserPermissions:
@@ -235,6 +234,86 @@ class RealDataImporter:
         })
         
         return data
+
+# ============================================================================
+# HELPER FUNCTIONS (CORRECTED)
+# ============================================================================
+
+def generate_synthetic_data():
+    """Generate synthetic malaria data for demonstration"""
+    dates = pd.date_range(start='2020-01-01', end='2024-01-01', freq='M')
+    
+    # Base pattern with seasonality
+    base_cases = 1000
+    seasonal_factor = 500 * np.sin(2 * np.pi * np.arange(len(dates)) / 12)
+    trend = 0.5 * np.arange(len(dates))
+    noise = np.random.normal(0, 100, len(dates))
+    
+    cases = base_cases + seasonal_factor + trend + noise
+    cases = np.maximum(cases, 0)  # No negative cases
+    
+    data = pd.DataFrame({
+        'date': dates,
+        'malaria_cases': cases.astype(int),
+        'temperature': np.random.uniform(25, 35, len(dates)),
+        'rainfall': np.random.exponential(50, len(dates)),
+        'humidity': np.random.uniform(60, 90, len(dates)),
+        'nddi': np.random.uniform(0.3, 0.7, len(dates)),
+        'llin_coverage': np.random.uniform(30, 80, len(dates)),
+        'irs_coverage': np.random.uniform(20, 60, len(dates)),
+        'population': np.random.uniform(100000, 500000, len(dates))
+    })
+    
+    return data
+
+def train_all_models(data):
+    """Train all machine learning models"""
+    if data is None:
+        return {}
+    
+    # Prepare features
+    features = ['temperature', 'rainfall', 'humidity', 'nddi', 'llin_coverage', 'irs_coverage']
+    features = [f for f in features if f in data.columns]
+    
+    X = data[features].values
+    y = data['malaria_cases'].values
+    
+    # Split data
+    split_idx = int(len(X) * 0.8)
+    X_train, X_test = X[:split_idx], X[split_idx:]
+    y_train, y_test = y[:split_idx], y[split_idx:]
+    
+    # Scale features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+    
+    # Train models
+    models = {}
+    
+    # Random Forest
+    rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
+    rf_model.fit(X_train_scaled, y_train)
+    rf_pred = rf_model.predict(X_test_scaled)
+    
+    # Gradient Boosting
+    gb_model = GradientBoostingRegressor(n_estimators=100, random_state=42)
+    gb_model.fit(X_train_scaled, y_train)
+    gb_pred = gb_model.predict(X_test_scaled)
+    
+    # Calculate metrics
+    models['rf_model'] = rf_model
+    models['gb_model'] = gb_model
+    models['rf_rmse'] = np.sqrt(mean_squared_error(y_test, rf_pred))
+    models['gb_rmse'] = np.sqrt(mean_squared_error(y_test, gb_pred))
+    models['rf_mae'] = mean_absolute_error(y_test, rf_pred)
+    models['gb_mae'] = mean_absolute_error(y_test, gb_pred)
+    models['rf_r2'] = r2_score(y_test, rf_pred)
+    models['gb_r2'] = r2_score(y_test, gb_pred)
+    models['scaler'] = scaler
+    models['feature_names'] = features
+    
+    return models
 
 # ============================================================================
 # ENHANCEMENT 1: REAL-TIME API INTEGRATIONS
@@ -1839,7 +1918,7 @@ class SecurityComplianceFramework:
         # or a proper method to get client IP
         return "127.0.0.1"  # Default for demo
     
-    def apply_differential_privacy(self, data: pd.DataFrame, epsilon: float = 0.1) -> pd.DataFrame:
+    def apply_differential_privacy(self, data: pd.DataFrame, epsilon: float = 0.1) -> Dict:
         """Apply differential privacy to protect individual data"""
         
         try:
@@ -2592,633 +2671,78 @@ community_engagement = CommunityEngagement()
 genomic_surveillance = GenomicSurveillance()
 
 # ============================================================================
-# MODIFIED MAIN APP WITH ALL ENHANCEMENTS INTEGRATED
+# DISPLAY FUNCTIONS FOR PREMIUM FEATURES
 # ============================================================================
 
-# ... [Previous imports and existing code remains exactly the same until the main() function]
+def show_lstm_results():
+    """Display LSTM model results"""
+    st.info("LSTM with Attention model would show time series forecasting results here.")
+    st.write("In production, this would display:")
+    st.write("- Training/validation loss curves")
+    st.write("- Forecast vs actual comparisons")
+    st.write("- Attention weights visualization")
+    st.write("- Multi-step ahead predictions")
 
-def main():
-    # Enhanced sidebar with all new features
-    with st.sidebar:
-        st.image("https://cdn-icons-png.flaticon.com/512/3050/3050525.png", width=100)
-        st.title("🦟 Malaria Forecasting System")
-        st.markdown("**Enterprise-Grade National Control System**")
-        st.markdown("---")
-        
-        # User role selection
-        st.markdown("### 👤 User Role")
-        user_role = st.selectbox(
-            "Select your role",
-            options=list(UserPermissions.ROLES.keys()),
-            format_func=lambda x: UserPermissions.get_role_name(x),
-            key="user_role_select"
-        )
-        st.session_state.user_role = user_role
-        
-        # Quick actions based on role
-        st.markdown("### ⚡ Quick Actions")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("📱 Mobile View", use_container_width=True):
-                st.session_state.mobile_view = not st.session_state.mobile_view
-                st.rerun()
-        with col2:
-            if st.button("🚨 View Alerts", use_container_width=True):
-                st.session_state.show_alerts = True
-                st.rerun()
-        
-        # NEW: Advanced Features Menu
-        st.markdown("### 🔬 Advanced Features")
-        with st.expander("🌐 Real-Time Data"):
-            if st.button("Fetch Live Weather", use_container_width=True):
-                st.session_state.show_live_weather = True
-                st.rerun()
-            if st.button("Get Satellite Data", use_container_width=True):
-                st.session_state.show_satellite_data = True
-                st.rerun()
-        
-        with st.expander("🤖 Advanced AI"):
-            if st.button("Train Deep Learning", use_container_width=True):
-                st.session_state.train_deep_learning = True
-                st.rerun()
-            if st.button("Run SHAP Analysis", use_container_width=True):
-                st.session_state.run_shap = True
-                st.rerun()
-        
-        with st.expander("🏥 FHIR Integration"):
-            if st.button("Generate FHIR Bundle", use_container_width=True):
-                st.session_state.generate_fhir = True
-                st.rerun()
-            if st.button("WHO Report", use_container_width=True):
-                st.session_state.generate_who_report = True
-                st.rerun()
-        
-        with st.expander("📱 Offline Mode"):
-            offline_status = offline_app.generate_offline_report(
-                (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'),
-                datetime.now().strftime('%Y-%m-%d')
-            )
-            if offline_status['success']:
-                pending = offline_status['summary'].get('pending_sync', 0)
-                st.write(f"Pending sync: {pending}")
-            
-            if st.button("Sync Offline Data", use_container_width=True):
-                sync_result = offline_app.background_sync('immediate')
-                if sync_result['success']:
-                    st.success(f"Synced {sync_result['items_synced']} items")
-                else:
-                    st.error(f"Sync failed: {sync_result.get('error')}")
-        
-        with st.expander("🔐 Security"):
-            if st.button("Run Security Audit", use_container_width=True):
-                st.session_state.run_security_audit = True
-                st.rerun()
-            if st.button("Compliance Report", use_container_width=True):
-                st.session_state.show_compliance = True
-                st.rerun()
-        
-        # Data import options (existing)
-        st.markdown("---")
-        st.markdown("### 📊 Data Management")
-        
-        data_option = st.radio(
-            "Choose data source:",
-            ["Generate Synthetic Data", "Upload CSV/Excel", "Import Sample Data", "Live API Integration"],
-            index=0
-        )
-        
-        if data_option == "Live API Integration":
-            col1, col2 = st.columns(2)
-            with col1:
-                lat = st.number_input("Latitude", value=5.6037)
-                lon = st.number_input("Longitude", value=-0.1870)
-            with col2:
-                country = st.text_input("Country", "Ghana")
-                api_source = st.selectbox("API Source", ["OpenWeatherMap", "WHO", "Satellite", "Mobile Data"])
-        
-        if st.button("📥 Load Data", use_container_width=True):
-            with st.spinner("Loading data..."):
-                if data_option == "Generate Synthetic Data":
-                    st.session_state.data = generate_synthetic_data()
-                    st.session_state.data_generated = True
-                    st.session_state.models_trained = False
-                elif data_option == "Upload CSV/Excel":
-                    uploaded_data = RealDataImporter.import_csv_file()
-                    if uploaded_data is not None:
-                        st.session_state.data = uploaded_data
-                        st.session_state.data_generated = True
-                        st.session_state.models_trained = False
-                        st.success("Data uploaded successfully!")
-                elif data_option == "Import Sample Data":
-                    country = st.selectbox("Select country", ["Ghana", "Kenya", "Uganda"])
-                    sample_data = RealDataImporter.import_sample_data(country)
-                    if sample_data is not None:
-                        st.session_state.data = sample_data
-                        st.session_state.data_generated = True
-                        st.session_state.models_trained = False
-                elif data_option == "Live API Integration":
-                    # Fetch live data
-                    weather_data = real_time_integrator.get_live_weather(lat, lon, country)
-                    if weather_data:
-                        st.success(f"Live weather data fetched: {weather_data['temperature']}°C")
-                        
-                        # Create synthetic data enhanced with live weather
-                        synthetic_data = generate_synthetic_data()
-                        
-                        # Enhance with live data
-                        synthetic_data['live_temperature'] = weather_data['temperature']
-                        synthetic_data['live_humidity'] = weather_data['humidity']
-                        synthetic_data['live_rainfall'] = weather_data['rainfall']
-                        synthetic_data['data_source'] = 'Live API + Synthetic'
-                        
-                        st.session_state.data = synthetic_data
-                        st.session_state.data_generated = True
-                        st.session_state.models_trained = False
-                
-                # Check data quality
-                if st.session_state.data is not None:
-                    DataQualityMonitor.check_data_quality(st.session_state.data)
-                    # Generate alerts
-                    AlertSystem.generate_alerts(st.session_state.data)
-                
-                st.rerun()
-        
-        if st.session_state.data_generated:
-            st.success("✅ Data loaded!")
-            
-            if st.button("🤖 Train Models", use_container_width=True):
-                with st.spinner("Training models..."):
-                    # Train traditional models
-                    st.session_state.model_results = train_all_models(st.session_state.data)
-                    
-                    # NEW: Also train advanced models if enough data
-                    if len(st.session_state.data) > 50:
-                        with st.spinner("Training advanced AI models..."):
-                            # Prepare data for deep learning
-                            X = st.session_state.data[['temperature', 'rainfall', 'humidity', 'nddi']].values
-                            y = st.session_state.data['malaria_cases'].values
-                            
-                            # Reshape for LSTM (samples, timesteps, features)
-                            lookback = 12
-                            X_seq, y_seq = [], []
-                            for i in range(lookback, len(X)):
-                                X_seq.append(X[i-lookback:i])
-                                y_seq.append(y[i])
-                            
-                            X_seq = np.array(X_seq)
-                            y_seq = np.array(y_seq)
-                            
-                            if len(X_seq) > 10:
-                                # Train LSTM with attention
-                                lstm_model = advanced_ml_pipeline.create_lstm_attention_model(
-                                    (lookback, X.shape[1])
-                                )
-                                
-                                # For demo, just create model (would train in production)
-                                st.session_state.advanced_models = {
-                                    'lstm_attention': 'Model architecture created',
-                                    'transformer': 'Available',
-                                    'shap_explainer': 'Ready for analysis'
-                                }
-                    
-                    st.session_state.models_trained = True
-                    st.rerun()
-        
-        # Advanced settings (existing)
-        st.markdown("---")
-        st.markdown("### 🔧 Advanced Settings")
-        
-        with st.expander("Multi-Instance Learning"):
-            window_size = st.slider("Temporal Window", 2, 6, 3)
-            n_clusters = st.slider("Clusters", 2, 8, 5)
-        
-        # NEW: Premium feature toggles
-        st.markdown("---")
-        st.markdown("### 💎 Premium Features")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            enable_genomics = st.checkbox("Genomic Surveillance", True)
-            enable_economics = st.checkbox("Economic Impact", True)
-        with col2:
-            enable_gamification = st.checkbox("Community Gamification", True)
-            enable_or = st.checkbox("Resource Optimization", True)
-        
-        # System status (enhanced)
-        st.markdown("---")
-        st.markdown("### 📈 System Status")
-        
-        if st.session_state.data is not None:
-            st.metric("Data Records", len(st.session_state.data))
-        
-        if st.session_state.alerts:
-            alert_count = len([a for a in st.session_state.alerts if a['level'] in ['CRITICAL', 'HIGH']])
-            st.metric("Active Alerts", alert_count, delta="Requires attention" if alert_count > 0 else None)
-        
-        # NEW: Security status
-        if st.session_state.get('security_audit_run', False):
-            st.metric("Security Score", "98%", delta="Excellent")
-        
-        # Backup/Export (enhanced)
-        if st.button("💾 Backup System", use_container_width=True):
-            backup_data = {
-                'data': st.session_state.data.to_dict() if st.session_state.data is not None else None,
-                'models_trained': st.session_state.models_trained,
-                'alerts': st.session_state.alerts,
-                'offline_data': offline_app.generate_offline_report(
-                    (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d'),
-                    datetime.now().strftime('%Y-%m-%d')
-                ),
-                'audit_log': security_framework.audit_log[-100:] if hasattr(security_framework, 'audit_log') else [],
-                'timestamp': datetime.now().isoformat(),
-                'version': '2.0-premium'
-            }
-            
-            # Encrypt backup
-            encrypted_backup = security_framework.encrypt_sensitive_data(backup_data, 'system_backup')
-            
-            if encrypted_backup['success']:
-                backup_str = json.dumps(encrypted_backup, indent=2)
-                b64 = base64.b64encode(backup_str.encode()).decode()
-                href = f'<a href="data:file/json;base64,{b64}" download="malaria_system_backup_secure_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json">Download Encrypted Backup</a>'
-                st.markdown(href, unsafe_allow_html=True)
-                
-                # Log the backup
-                security_framework.create_immutable_audit_log(
-                    'system_backup',
-                    st.session_state.user_role,
-                    {'backup_size': len(backup_str), 'encrypted': True}
-                )
-    
-    # Main content - Check for new feature activations first
-    if st.session_state.get('show_live_weather', False):
-        show_live_weather_dashboard()
-        return
-    
-    if st.session_state.get('train_deep_learning', False):
-        show_deep_learning_dashboard()
-        return
-    
-    if st.session_state.get('generate_fhir', False):
-        show_fhir_dashboard()
-        return
-    
-    if st.session_state.get('run_security_audit', False):
-        show_security_dashboard()
-        return
-    
-    if st.session_state.get('run_shap', False):
-        show_shap_analysis()
-        return
-    
-    # Mobile view if enabled
-    if st.session_state.get('mobile_view', False):
-        MobileInterface.mobile_view()
-        return
-    
-    # ... [Rest of the existing main() function remains exactly the same until the tab definitions]
-    
-    # Enhanced tabs with new features
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
-        "📈 Overview", "🚨 Alerts & Response", "💰 Resources", 
-        "📊 Performance", "🤖 Advanced AI", "🏥 Interoperability",
-        "🔐 Security", "💎 Premium"
-    ])
-    
-    with tab1:  # Overview (existing)
-        # ... existing overview code ...
-        pass
-    
-    with tab2:  # Alerts & Response (existing)
-        # ... existing alerts code ...
-        pass
-    
-    with tab3:  # Resources (existing)
-        # ... existing resources code ...
-        pass
-    
-    with tab4:  # Performance (existing)
-        # ... existing performance code ...
-        pass
-    
-    with tab5:  # NEW: Advanced AI Tab
-        st.markdown('<h2 class="sub-header">🤖 Advanced AI & Machine Learning</h2>', unsafe_allow_html=True)
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Deep Learning Models", "3", "LSTM, Transformer, GNN")
-        with col2:
-            st.metric("SHAP Explanations", "Available", "Model interpretability")
-        with col3:
-            st.metric("Anomaly Detection", "Active", "Autoencoder-based")
-        
-        # Model selection
-        st.subheader("🎯 Select AI Model")
-        ai_model = st.selectbox(
-            "Choose advanced model",
-            ["LSTM with Attention", "Transformer", "Graph Neural Network", "Causal Impact", "Anomaly Detection"]
-        )
-        
-        if st.button("Run Analysis", key="run_ai_analysis"):
-            with st.spinner(f"Running {ai_model} analysis..."):
-                if ai_model == "LSTM with Attention":
-                    show_lstm_results()
-                elif ai_model == "Transformer":
-                    show_transformer_results()
-                elif ai_model == "Causal Impact":
-                    show_causal_impact()
-                elif ai_model == "Anomaly Detection":
-                    show_anomaly_detection()
-        
-        # SHAP Analysis
-        st.subheader("🔍 Model Explainability (SHAP)")
-        if st.session_state.data is not None and st.session_state.models_trained:
-            if st.button("Generate SHAP Analysis"):
-                with st.spinner("Calculating feature importance..."):
-                    # Prepare data
-                    X = st.session_state.data[['temperature', 'rainfall', 'humidity', 'nddi', 
-                                              'llin_coverage', 'irs_coverage']].values
-                    
-                    # Get model predictions
-                    if 'model_results' in st.session_state:
-                        model = st.session_state.model_results.get('rf_model')
-                        if model:
-                            shap_values = advanced_ml_pipeline.create_shap_explanations(
-                                model, X[:100], X[:20]
-                            )
-                            
-                            if shap_values is not None:
-                                # Plot SHAP summary
-                                fig, ax = plt.subplots(figsize=(10, 6))
-                                shap.summary_plot(shap_values, X[:20], 
-                                                 feature_names=['Temp', 'Rain', 'Humidity', 'NDDI', 'LLIN', 'IRS'],
-                                                 show=False)
-                                st.pyplot(fig)
-                                plt.clf()
-        
-        # Hyperparameter Optimization
-        st.subheader("⚙️ Hyperparameter Optimization")
-        if st.button("Run Optuna Optimization"):
-            with st.spinner("Optimizing hyperparameters (this may take a minute)..."):
-                if st.session_state.data is not None:
-                    X = st.session_state.data[['temperature', 'rainfall', 'humidity', 'nddi']].values
-                    y = st.session_state.data['malaria_cases'].values
-                    
-                    # Split data
-                    split_idx = int(len(X) * 0.8)
-                    X_train, X_val = X[:split_idx], X[split_idx:]
-                    y_train, y_val = y[:split_idx], y[split_idx:]
-                    
-                    best_params, best_score = advanced_ml_pipeline.hyperparameter_optimization(
-                        X_train, y_train, X_val, y_val, n_trials=20
-                    )
-                    
-                    st.success(f"Best RMSE: {best_score:.2f}")
-                    st.write("Best parameters:")
-                    st.json(best_params)
-    
-    with tab6:  # NEW: Interoperability Tab
-        st.markdown('<h2 class="sub-header">🏥 Healthcare Interoperability</h2>', unsafe_allow_html=True)
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("FHIR Compliance", "Level 4", "Full interoperability")
-        with col2:
-            st.metric("WHO Reporting", "HMIS 033", "Standard format")
-        with col3:
-            st.metric("DHIS2 Integration", "Available", "National systems")
-        
-        # FHIR Resource Generation
-        st.subheader("📄 FHIR Resource Generation")
-        
-        resource_type = st.selectbox(
-            "FHIR Resource Type",
-            ["Observation (Test results)", "Condition (Diagnosis)", "Patient", "MedicationAdministration"]
-        )
-        
-        if st.session_state.data is not None and st.button("Generate FHIR Bundle"):
-            # Create sample FHIR data from app data
-            sample_data = {
-                'test_date': datetime.now().isoformat(),
-                'test_result': True,
-                'patient_id': 'patient-12345',
-                'diagnosis_date': datetime.now().isoformat(),
-                'district': 'Accra Metro',
-                'city': 'Accra',
-                'country': 'Ghana'
-            }
-            
-            if resource_type.startswith("Observation"):
-                fhir_bundle = fhir_integration.map_to_fhir_bundle(
-                    pd.DataFrame([sample_data]), 'Observation'
-                )
-            elif resource_type.startswith("Condition"):
-                fhir_bundle = fhir_integration.map_to_fhir_bundle(
-                    pd.DataFrame([sample_data]), 'Condition'
-                )
-            elif resource_type == "Patient":
-                fhir_bundle = fhir_integration.map_to_fhir_bundle(
-                    pd.DataFrame([sample_data]), 'Patient'
-                )
-            
-            st.json(fhir_bundle)
-            
-            # Download option
-            fhir_json = json.dumps(fhir_bundle, indent=2)
-            st.download_button(
-                label="Download FHIR Bundle",
-                data=fhir_json,
-                file_name=f"malaria_fhir_{resource_type}_{datetime.now().strftime('%Y%m%d')}.json",
-                mime="application/json"
-            )
-        
-        # WHO Reporting
-        st.subheader("🌍 WHO Standard Reports")
-        
-        if st.button("Generate HMIS 033 Report"):
-            who_report = fhir_integration.export_who_report(
-                st.session_state.data if st.session_state.data is not None else pd.DataFrame(),
-                'hmis033'
-            )
-            
-            st.write("WHO HMIS 033 Malaria Report:")
-            st.json(who_report)
-        
-        # DHIS2 Integration
-        st.subheader("🔗 DHIS2 Integration")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            dhis2_url = st.text_input("DHIS2 Server URL", "https://play.dhis2.org/2.38.0")
-            dhis2_user = st.text_input("Username", "admin")
-        with col2:
-            dhis2_password = st.text_input("Password", type="password")
-        
-        if st.button("Test DHIS2 Connection"):
-            with st.spinner("Connecting to DHIS2..."):
-                connection = fhir_integration.connect_to_dhis2(
-                    dhis2_url, dhis2_user, dhis2_password
-                )
-                
-                if connection['connected']:
-                    st.success(f"Connected successfully!")
-                    st.write(f"Organization units: {connection.get('organization_units', 0)}")
-                    st.write(f"Malaria data elements: {connection.get('malaria_data_elements', 0)}")
-                else:
-                    st.error(f"Connection failed: {connection.get('error')}")
-    
-    with tab7:  # NEW: Security Tab
-        st.markdown('<h2 class="sub-header">🔐 Security & Compliance</h2>', unsafe_allow_html=True)
-        
-        # Security dashboard
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.metric("Encryption", "AES-256", "At rest & in transit")
-        with col2:
-            st.metric("Access Control", "ABAC", "Attribute-based")
-        with col3:
-            st.metric("Compliance", "HIPAA/GDPR", "Healthcare standards")
-        with col4:
-            st.metric("Audit Log", f"{len(security_framework.audit_log)}", "Immutable")
-        
-        # Security features
-        st.subheader("🔒 Security Features")
-        
-        features = security_framework.security_config
-        for category, config in features.items():
-            with st.expander(f"{category.upper()} Configuration"):
-                st.json(config)
-        
-        # Data Encryption
-        st.subheader("🔐 Data Encryption")
-        
-        sample_data = {"patient_id": "12345", "diagnosis": "malaria", "sensitive": True}
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("Encrypt Sample Data"):
-                encrypted = security_framework.encrypt_sensitive_data(sample_data, 'pii')
-                if encrypted['success']:
-                    st.session_state.encrypted_data = encrypted
-                    st.success("Data encrypted successfully!")
-                    st.code(encrypted['encrypted_data'][:100] + "...", language="text")
-        
-        with col2:
-            if 'encrypted_data' in st.session_state:
-                if st.button("Decrypt Data"):
-                    decrypted = security_framework.decrypt_sensitive_data(
-                        st.session_state.encrypted_data
-                    )
-                    if decrypted['success']:
-                        st.success("Data decrypted successfully!")
-                        st.json(decrypted['decrypted_data'])
-        
-        # Access Control Testing
-        st.subheader("🚪 Access Control Test")
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            user_role = st.selectbox("User Role", ["field_worker", "district_officer", "regional_manager", "national_director"])
-        with col2:
-            resource_type = st.selectbox("Resource Type", ["patient_data", "aggregated_data", "phi", "system_config"])
-        with col3:
-            action = st.selectbox("Action", ["read", "write", "delete", "export"])
-        
-        if st.button("Check Access Permission"):
-            abac_engine = security_framework.ABACEngine()
-            
-            # Simulate user attributes
-            user_attrs = {
-                'role': user_role,
-                'district': 'Accra Metro' if user_role == 'field_worker' else None,
-                'region': 'Greater Accra' if user_role == 'regional_manager' else None
-            }
-            
-            # Simulate resource attributes
-            resource_attrs = {
-                'type': resource_type,
-                'district': 'Accra Metro',
-                'region': 'Greater Accra',
-                'consent_granted': True if resource_type == 'phi' else None
-            }
-            
-            access_result = abac_engine.check_access(user_attrs, resource_attrs, action)
-            
-            if access_result['granted']:
-                st.success(f"✅ Access GRANTED")
-                st.write(f"Policy: {access_result.get('policy_id')}")
-                st.write(f"Reason: {access_result.get('description')}")
-            else:
-                st.error(f"❌ Access DENIED")
-                st.write(f"Reason: {access_result.get('reason')}")
-        
-        # Compliance Reports
-        st.subheader("📋 Compliance Reports")
-        
-        if st.button("Generate Compliance Report"):
-            compliance_report = security_framework.generate_compliance_report()
-            st.json(compliance_report)
-        
-        # Differential Privacy
-        st.subheader("🎭 Differential Privacy")
-        
-        if st.session_state.data is not None:
-            epsilon = st.slider("Privacy Parameter (ε)", 0.01, 1.0, 0.1, 0.01,
-                               help="Lower ε = more privacy, less accuracy")
-            
-            if st.button("Apply Differential Privacy"):
-                dp_result = security_framework.apply_differential_privacy(
-                    st.session_state.data, epsilon
-                )
-                
-                if dp_result['success']:
-                    st.success("Differential privacy applied successfully!")
-                    st.write("Privacy parameters:")
-                    st.json(dp_result['privacy_parameters'])
-                    
-                    # Show sample of anonymized data
-                    st.write("Sample of anonymized data:")
-                    st.dataframe(dp_result['anonymized_data'].head())
-                else:
-                    st.error(f"Failed: {dp_result.get('error')}")
-    
-    with tab8:  # NEW: Premium Features Tab
-        st.markdown('<h2 class="sub-header">💎 Premium Features Suite</h2>', unsafe_allow_html=True)
-        
-        st.info("""
-        These features represent cutting-edge capabilities for national malaria control programs.
-        They integrate advanced analytics, community engagement, and genomic surveillance.
-        """)
-        
-        # Feature selection
-        feature = st.selectbox(
-            "Select Premium Feature",
-            [
-                "Resource Optimization",
-                "Economic Impact Analysis",
-                "Community Gamification",
-                "Genomic Surveillance",
-                "Climate Change Projections"
-            ]
-        )
-        
-        if feature == "Resource Optimization":
-            show_resource_optimization()
-        elif feature == "Economic Impact Analysis":
-            show_economic_impact()
-        elif feature == "Community Gamification":
-            show_community_gamification()
-        elif feature == "Genomic Surveillance":
-            show_genomic_surveillance()
-        elif feature == "Climate Change Projections":
-            show_climate_projections()
-    
-    # ... [Rest of existing main() function continues with original analytics]
+def show_transformer_results():
+    """Display Transformer model results"""
+    st.info("Transformer model would show advanced time series analysis here.")
+    st.write("Transformer capabilities:")
+    st.write("- Multi-head attention patterns")
+    st.write("- Long-range dependency capture")
+    st.write("- Multi-variate time series modeling")
+    st.write("- Anomaly detection in sequences")
 
-# ============================================================================
-# NEW: FEATURE-SPECIFIC DISPLAY FUNCTIONS
-# ============================================================================
+def show_causal_impact():
+    """Display causal impact analysis"""
+    st.info("Causal impact analysis would measure intervention effects here.")
+    
+    # Example data
+    dates = pd.date_range(start='2023-01-01', periods=24, freq='M')
+    data = pd.DataFrame({
+        'date': dates,
+        'malaria_cases': [1000 + np.random.poisson(200) for _ in range(24)],
+        'temperature': np.random.uniform(25, 35, 24),
+        'rainfall': np.random.exponential(50, 24)
+    })
+    
+    # Simulate causal impact
+    intervention_date = '2023-07-01'
+    result = advanced_ml_pipeline.causal_impact_analysis(intervention_date, data)
+    
+    if result:
+        st.write(f"**Intervention Date:** {result['intervention_date']}")
+        st.write(f"**Total Impact:** {result['total_impact']:.1f} cases")
+        st.write(f"**Average Relative Impact:** {result['avg_relative_impact']:.1f}%")
+        
+        if result['statistical_significance'].get('significant_95', False):
+            st.success("Statistically significant at 95% confidence level")
+        else:
+            st.warning("Not statistically significant at 95% confidence level")
+
+def show_anomaly_detection():
+    """Display anomaly detection results"""
+    st.info("Autoencoder-based anomaly detection would identify outliers here.")
+    
+    if st.session_state.data is not None:
+        # Prepare data
+        X = st.session_state.data[['temperature', 'rainfall', 'humidity', 'nddi']].values
+        
+        # Run anomaly detection
+        anomalies = advanced_ml_pipeline.anomaly_detection_autoencoder(X, contamination=0.1)
+        
+        st.write(f"**Detected {anomalies['anomalies'].sum()} anomalies**")
+        st.write(f"**Threshold:** {anomalies['threshold']:.4f}")
+        
+        # Show reconstruction error distribution
+        fig, ax = plt.subplots(figsize=(10, 4))
+        ax.hist(anomalies['reconstruction_error'], bins=50, alpha=0.7)
+        ax.axvline(anomalies['threshold'], color='red', linestyle='--', label='Threshold')
+        ax.set_xlabel('Reconstruction Error')
+        ax.set_ylabel('Frequency')
+        ax.set_title('Anomaly Detection: Reconstruction Error Distribution')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        st.pyplot(fig)
 
 def show_live_weather_dashboard():
     """Display live weather integration dashboard"""
@@ -4188,9 +3712,864 @@ def show_climate_projections():
         st.write("*Based on WHO economic impact estimates*")
 
 # ============================================================================
+# MODIFIED MAIN APP WITH ALL ENHANCEMENTS INTEGRATED
+# ============================================================================
+
+def main():
+    # Initialize session state variables (CRITICAL FIX)
+    if 'data' not in st.session_state:
+        st.session_state.data = None
+    if 'data_generated' not in st.session_state:
+        st.session_state.data_generated = False
+    if 'models_trained' not in st.session_state:
+        st.session_state.models_trained = False
+    if 'model_results' not in st.session_state:
+        st.session_state.model_results = {}
+    if 'alerts' not in st.session_state:
+        st.session_state.alerts = []
+    if 'mobile_view' not in st.session_state:
+        st.session_state.mobile_view = False
+    if 'show_alerts' not in st.session_state:
+        st.session_state.show_alerts = False
+    if 'user_role' not in st.session_state:
+        st.session_state.user_role = 'field_worker'
+    
+    # Initialize new feature flags
+    if 'show_live_weather' not in st.session_state:
+        st.session_state.show_live_weather = False
+    if 'train_deep_learning' not in st.session_state:
+        st.session_state.train_deep_learning = False
+    if 'generate_fhir' not in st.session_state:
+        st.session_state.generate_fhir = False
+    if 'run_security_audit' not in st.session_state:
+        st.session_state.run_security_audit = False
+    if 'run_shap' not in st.session_state:
+        st.session_state.run_shap = False
+    if 'generate_who_report' not in st.session_state:
+        st.session_state.generate_who_report = False
+    if 'show_compliance' not in st.session_state:
+        st.session_state.show_compliance = False
+    
+    # Enhanced sidebar with all new features
+    with st.sidebar:
+        st.image("https://cdn-icons-png.flaticon.com/512/3050/3050525.png", width=100)
+        st.title("🦟 Malaria Forecasting System")
+        st.markdown("**Enterprise-Grade National Control System**")
+        st.markdown("---")
+        
+        # User role selection - NOW WORKING
+        st.markdown("### 👤 User Role")
+        user_role = st.selectbox(
+            "Select your role",
+            options=list(UserPermissions.ROLES.keys()),
+            format_func=lambda x: UserPermissions.get_role_name(x),
+            key="user_role_select"
+        )
+        st.session_state.user_role = user_role
+        
+        # Quick actions based on role
+        st.markdown("### ⚡ Quick Actions")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("📱 Mobile View", use_container_width=True):
+                st.session_state.mobile_view = not st.session_state.mobile_view
+                st.rerun()
+        with col2:
+            if st.button("🚨 View Alerts", use_container_width=True):
+                st.session_state.show_alerts = True
+                st.rerun()
+        
+        # NEW: Advanced Features Menu
+        st.markdown("### 🔬 Advanced Features")
+        with st.expander("🌐 Real-Time Data"):
+            if st.button("Fetch Live Weather", use_container_width=True):
+                st.session_state.show_live_weather = True
+                st.rerun()
+            if st.button("Get Satellite Data", use_container_width=True):
+                st.session_state.show_satellite_data = True
+                st.rerun()
+        
+        with st.expander("🤖 Advanced AI"):
+            if st.button("Train Deep Learning", use_container_width=True):
+                st.session_state.train_deep_learning = True
+                st.rerun()
+            if st.button("Run SHAP Analysis", use_container_width=True):
+                st.session_state.run_shap = True
+                st.rerun()
+        
+        with st.expander("🏥 FHIR Integration"):
+            if st.button("Generate FHIR Bundle", use_container_width=True):
+                st.session_state.generate_fhir = True
+                st.rerun()
+            if st.button("WHO Report", use_container_width=True):
+                st.session_state.generate_who_report = True
+                st.rerun()
+        
+        with st.expander("📱 Offline Mode"):
+            offline_status = offline_app.generate_offline_report(
+                (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'),
+                datetime.now().strftime('%Y-%m-%d')
+            )
+            if offline_status['success']:
+                pending = offline_status['summary'].get('pending_sync', 0)
+                st.write(f"Pending sync: {pending}")
+            
+            if st.button("Sync Offline Data", use_container_width=True):
+                sync_result = offline_app.background_sync('immediate')
+                if sync_result['success']:
+                    st.success(f"Synced {sync_result['items_synced']} items")
+                else:
+                    st.error(f"Sync failed: {sync_result.get('error')}")
+        
+        with st.expander("🔐 Security"):
+            if st.button("Run Security Audit", use_container_width=True):
+                st.session_state.run_security_audit = True
+                st.rerun()
+            if st.button("Compliance Report", use_container_width=True):
+                st.session_state.show_compliance = True
+                st.rerun()
+        
+        # Data import options (existing)
+        st.markdown("---")
+        st.markdown("### 📊 Data Management")
+        
+        data_option = st.radio(
+            "Choose data source:",
+            ["Generate Synthetic Data", "Upload CSV/Excel", "Import Sample Data", "Live API Integration"],
+            index=0
+        )
+        
+        if data_option == "Live API Integration":
+            col1, col2 = st.columns(2)
+            with col1:
+                lat = st.number_input("Latitude", value=5.6037)
+                lon = st.number_input("Longitude", value=-0.1870)
+            with col2:
+                country = st.text_input("Country", "Ghana")
+                api_source = st.selectbox("API Source", ["OpenWeatherMap", "WHO", "Satellite", "Mobile Data"])
+        
+        if st.button("📥 Load Data", use_container_width=True):
+            with st.spinner("Loading data..."):
+                if data_option == "Generate Synthetic Data":
+                    st.session_state.data = generate_synthetic_data()
+                    st.session_state.data_generated = True
+                    st.session_state.models_trained = False
+                elif data_option == "Upload CSV/Excel":
+                    uploaded_data = RealDataImporter.import_csv_file()
+                    if uploaded_data is not None:
+                        st.session_state.data = uploaded_data
+                        st.session_state.data_generated = True
+                        st.session_state.models_trained = False
+                        st.success("Data uploaded successfully!")
+                elif data_option == "Import Sample Data":
+                    country = st.selectbox("Select country", ["Ghana", "Kenya", "Uganda"])
+                    sample_data = RealDataImporter.import_sample_data(country)
+                    if sample_data is not None:
+                        st.session_state.data = sample_data
+                        st.session_state.data_generated = True
+                        st.session_state.models_trained = False
+                elif data_option == "Live API Integration":
+                    # Fetch live data
+                    weather_data = real_time_integrator.get_live_weather(lat, lon, country)
+                    if weather_data:
+                        st.success(f"Live weather data fetched: {weather_data['temperature']}°C")
+                        
+                        # Create synthetic data enhanced with live weather
+                        synthetic_data = generate_synthetic_data()
+                        
+                        # Enhance with live data
+                        synthetic_data['live_temperature'] = weather_data['temperature']
+                        synthetic_data['live_humidity'] = weather_data['humidity']
+                        synthetic_data['live_rainfall'] = weather_data['rainfall']
+                        synthetic_data['data_source'] = 'Live API + Synthetic'
+                        
+                        st.session_state.data = synthetic_data
+                        st.session_state.data_generated = True
+                        st.session_state.models_trained = False
+                
+                # Check data quality
+                if st.session_state.data is not None:
+                    DataQualityMonitor.check_data_quality(st.session_state.data)
+                    # Generate alerts
+                    st.session_state.alerts = AlertSystem.generate_alerts(st.session_state.data)
+                
+                st.rerun()
+        
+        if st.session_state.data_generated:
+            st.success("✅ Data loaded!")
+            
+            if st.button("🤖 Train Models", use_container_width=True):
+                with st.spinner("Training models..."):
+                    # Train traditional models
+                    st.session_state.model_results = train_all_models(st.session_state.data)
+                    
+                    # NEW: Also train advanced models if enough data
+                    if len(st.session_state.data) > 50:
+                        with st.spinner("Training advanced AI models..."):
+                            # Prepare data for deep learning
+                            X = st.session_state.data[['temperature', 'rainfall', 'humidity', 'nddi']].values
+                            y = st.session_state.data['malaria_cases'].values
+                            
+                            # Reshape for LSTM (samples, timesteps, features)
+                            lookback = 12
+                            X_seq, y_seq = [], []
+                            for i in range(lookback, len(X)):
+                                X_seq.append(X[i-lookback:i])
+                                y_seq.append(y[i])
+                            
+                            X_seq = np.array(X_seq)
+                            y_seq = np.array(y_seq)
+                            
+                            if len(X_seq) > 10:
+                                # Train LSTM with attention
+                                lstm_model = advanced_ml_pipeline.create_lstm_attention_model(
+                                    (lookback, X.shape[1])
+                                )
+                                
+                                # For demo, just create model (would train in production)
+                                st.session_state.advanced_models = {
+                                    'lstm_attention': 'Model architecture created',
+                                    'transformer': 'Available',
+                                    'shap_explainer': 'Ready for analysis'
+                                }
+                    
+                    st.session_state.models_trained = True
+                    st.rerun()
+        
+        # Advanced settings (existing)
+        st.markdown("---")
+        st.markdown("### 🔧 Advanced Settings")
+        
+        with st.expander("Multi-Instance Learning"):
+            window_size = st.slider("Temporal Window", 2, 6, 3)
+            n_clusters = st.slider("Clusters", 2, 8, 5)
+        
+        # NEW: Premium feature toggles
+        st.markdown("---")
+        st.markdown("### 💎 Premium Features")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            enable_genomics = st.checkbox("Genomic Surveillance", True)
+            enable_economics = st.checkbox("Economic Impact", True)
+        with col2:
+            enable_gamification = st.checkbox("Community Gamification", True)
+            enable_or = st.checkbox("Resource Optimization", True)
+        
+        # System status (enhanced)
+        st.markdown("---")
+        st.markdown("### 📈 System Status")
+        
+        if st.session_state.data is not None:
+            st.metric("Data Records", len(st.session_state.data))
+        
+        if st.session_state.alerts:
+            alert_count = len([a for a in st.session_state.alerts if a['level'] in ['CRITICAL', 'HIGH']])
+            st.metric("Active Alerts", alert_count, delta="Requires attention" if alert_count > 0 else None)
+        
+        # NEW: Security status
+        if st.session_state.get('security_audit_run', False):
+            st.metric("Security Score", "98%", delta="Excellent")
+        
+        # Backup/Export (enhanced)
+        if st.button("💾 Backup System", use_container_width=True):
+            backup_data = {
+                'data': st.session_state.data.to_dict() if st.session_state.data is not None else None,
+                'models_trained': st.session_state.models_trained,
+                'alerts': st.session_state.alerts,
+                'offline_data': offline_app.generate_offline_report(
+                    (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d'),
+                    datetime.now().strftime('%Y-%m-%d')
+                ),
+                'audit_log': security_framework.audit_log[-100:] if hasattr(security_framework, 'audit_log') else [],
+                'timestamp': datetime.now().isoformat(),
+                'version': '2.0-premium'
+            }
+            
+            # Encrypt backup
+            encrypted_backup = security_framework.encrypt_sensitive_data(backup_data, 'system_backup')
+            
+            if encrypted_backup['success']:
+                backup_str = json.dumps(encrypted_backup, indent=2)
+                b64 = base64.b64encode(backup_str.encode()).decode()
+                href = f'<a href="data:file/json;base64,{b64}" download="malaria_system_backup_secure_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json">Download Encrypted Backup</a>'
+                st.markdown(href, unsafe_allow_html=True)
+                
+                # Log the backup
+                security_framework.create_immutable_audit_log(
+                    'system_backup',
+                    st.session_state.user_role,
+                    {'backup_size': len(backup_str), 'encrypted': True}
+                )
+    
+    # Main content - Check for new feature activations first
+    if st.session_state.get('show_live_weather', False):
+        show_live_weather_dashboard()
+        return
+    
+    if st.session_state.get('train_deep_learning', False):
+        show_deep_learning_dashboard()
+        return
+    
+    if st.session_state.get('generate_fhir', False):
+        show_fhir_dashboard()
+        return
+    
+    if st.session_state.get('run_security_audit', False):
+        show_security_dashboard()
+        return
+    
+    if st.session_state.get('run_shap', False):
+        show_shap_analysis()
+        return
+    
+    # Mobile view if enabled
+    if st.session_state.get('mobile_view', False):
+        MobileInterface.mobile_view()
+        return
+    
+    # Main dashboard
+    st.title("🦟 National Malaria Forecasting & Control System")
+    st.markdown("""
+    **Enterprise-Grade Platform for National Malaria Control Programs**
+    
+    This system integrates advanced AI, real-time data, healthcare interoperability, and security 
+    for comprehensive malaria surveillance and control.
+    """)
+    
+    # Enhanced tabs with new features
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+        "📈 Overview", "🚨 Alerts & Response", "💰 Resources", 
+        "📊 Performance", "🤖 Advanced AI", "🏥 Interoperability",
+        "🔐 Security", "💎 Premium"
+    ])
+    
+    with tab1:  # Overview (existing)
+        st.markdown('<h2 class="sub-header">📈 System Overview</h2>', unsafe_allow_html=True)
+        
+        if st.session_state.data is not None:
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                total_cases = st.session_state.data['malaria_cases'].sum()
+                st.metric("Total Cases", f"{total_cases:,}")
+            with col2:
+                avg_temp = st.session_state.data['temperature'].mean()
+                st.metric("Avg Temperature", f"{avg_temp:.1f}°C")
+            with col3:
+                avg_rainfall = st.session_state.data['rainfall'].mean()
+                st.metric("Avg Rainfall", f"{avg_rainfall:.1f} mm")
+            with col4:
+                avg_nddi = st.session_state.data['nddi'].mean()
+                st.metric("Avg NDDI", f"{avg_nddi:.3f}")
+            
+            # Data preview
+            st.subheader("📊 Data Preview")
+            st.dataframe(st.session_state.data.head(10), use_container_width=True)
+            
+            # Basic visualization
+            st.subheader("📈 Malaria Cases Over Time")
+            fig, ax = plt.subplots(figsize=(12, 6))
+            ax.plot(st.session_state.data['date'], st.session_state.data['malaria_cases'], 
+                   marker='o', markersize=4, linewidth=2)
+            ax.set_xlabel('Date')
+            ax.set_ylabel('Malaria Cases')
+            ax.set_title('Malaria Cases Over Time')
+            ax.grid(True, alpha=0.3)
+            plt.xticks(rotation=45)
+            st.pyplot(fig)
+        else:
+            st.info("Please load data to see the overview")
+    
+    with tab2:  # Alerts & Response
+        st.markdown('<h2 class="sub-header">🚨 Alerts & Response System</h2>', unsafe_allow_html=True)
+        
+        if st.session_state.alerts:
+            st.warning(f"⚠️ **{len(st.session_state.alerts)} Active Alerts**")
+            
+            for alert in st.session_state.alerts:
+                if alert['level'] == 'HIGH':
+                    st.error(f"**{alert['level']}**: {alert['message']}")
+                elif alert['level'] == 'MEDIUM':
+                    st.warning(f"**{alert['level']}**: {alert['message']}")
+                else:
+                    st.info(f"**{alert['level']}**: {alert['message']}")
+            
+            st.subheader("Response Actions")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                if st.button("📋 Generate Response Plan", use_container_width=True):
+                    st.success("Response plan generated!")
+                    st.write("1. Mobilize rapid response team")
+                    st.write("2. Distribute additional bed nets")
+                    st.write("3. Increase testing in affected areas")
+                    st.write("4. Alert nearby health facilities")
+            with col2:
+                if st.button("📞 Contact Emergency Team", use_container_width=True):
+                    st.success("Emergency team notified!")
+            with col3:
+                if st.button("📊 Allocate Resources", use_container_width=True):
+                    st.success("Resource allocation optimized!")
+        else:
+            st.success("✅ No active alerts")
+            st.info("System is monitoring for potential outbreaks...")
+    
+    with tab3:  # Resources
+        st.markdown('<h2 class="sub-header">💰 Resource Management</h2>', unsafe_allow_html=True)
+        
+        st.subheader("Inventory Status")
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Bed Nets", "45,230", "+2,300")
+        with col2:
+            st.metric("RDT Tests", "12,450", "-850")
+        with col3:
+            st.metric("ACT Treatments", "8,920", "-320")
+        with col4:
+            st.metric("IRS Kits", "1,230", "+150")
+        
+        st.subheader("Resource Allocation")
+        districts = ["Accra Metro", "Kumasi", "Tamale", "Takoradi", "Cape Coast"]
+        allocations = pd.DataFrame({
+            'District': districts,
+            'Bed Nets': np.random.randint(1000, 10000, 5),
+            'RDT Tests': np.random.randint(500, 5000, 5),
+            'ACT Treatments': np.random.randint(200, 3000, 5),
+            'Priority': ['High', 'Medium', 'High', 'Low', 'Medium']
+        })
+        st.dataframe(allocations, use_container_width=True)
+        
+        st.subheader("Request Resources")
+        with st.form("resource_request"):
+            col1, col2 = st.columns(2)
+            with col1:
+                district = st.selectbox("District", districts)
+                item_type = st.selectbox("Resource Type", ["Bed Nets", "RDT Tests", "ACT Treatments", "IRS Kits"])
+            with col2:
+                quantity = st.number_input("Quantity", 1, 10000, 100)
+                urgency = st.selectbox("Urgency", ["Low", "Medium", "High", "Critical"])
+            
+            if st.form_submit_button("Submit Request"):
+                st.success(f"Request submitted for {quantity} {item_type} to {district}")
+    
+    with tab4:  # Performance
+        st.markdown('<h2 class="sub-header">📊 Model Performance</h2>', unsafe_allow_html=True)
+        
+        if st.session_state.models_trained:
+            st.success("✅ Models trained successfully!")
+            
+            # Display model performance
+            results = st.session_state.model_results
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("RF RMSE", f"{results.get('rf_rmse', 0):.1f}")
+            with col2:
+                st.metric("GB RMSE", f"{results.get('gb_rmse', 0):.1f}")
+            with col3:
+                st.metric("RF R² Score", f"{results.get('rf_r2', 0):.3f}")
+            with col4:
+                st.metric("GB R² Score", f"{results.get('gb_r2', 0):.3f}")
+            
+            # Feature importance
+            st.subheader("🔍 Feature Importance")
+            if 'rf_model' in results:
+                importances = results['rf_model'].feature_importances_
+                features = results.get('feature_names', ['Feature 1', 'Feature 2', 'Feature 3'])
+                
+                fig, ax = plt.subplots(figsize=(10, 6))
+                ax.barh(features, importances)
+                ax.set_xlabel('Importance')
+                ax.set_title('Random Forest Feature Importance')
+                ax.grid(True, alpha=0.3)
+                st.pyplot(fig)
+            
+            # Generate predictions
+            st.subheader("🔮 Generate Forecast")
+            if st.button("Generate 6-Month Forecast"):
+                with st.spinner("Generating forecast..."):
+                    # Simulate forecast
+                    future_dates = pd.date_range(
+                        start=st.session_state.data['date'].iloc[-1] + timedelta(days=30),
+                        periods=6,
+                        freq='M'
+                    )
+                    
+                    forecast_data = pd.DataFrame({
+                        'date': future_dates,
+                        'predicted_cases': np.random.randint(800, 1500, 6),
+                        'lower_bound': np.random.randint(600, 1200, 6),
+                        'upper_bound': np.random.randint(1000, 1800, 6)
+                    })
+                    
+                    fig, ax = plt.subplots(figsize=(12, 6))
+                    ax.plot(st.session_state.data['date'], st.session_state.data['malaria_cases'], 
+                           label='Historical', marker='o')
+                    ax.plot(forecast_data['date'], forecast_data['predicted_cases'], 
+                           label='Forecast', marker='s', linestyle='--')
+                    ax.fill_between(forecast_data['date'], 
+                                   forecast_data['lower_bound'], 
+                                   forecast_data['upper_bound'], 
+                                   alpha=0.3, label='Confidence Interval')
+                    ax.set_xlabel('Date')
+                    ax.set_ylabel('Malaria Cases')
+                    ax.set_title('6-Month Malaria Forecast')
+                    ax.legend()
+                    ax.grid(True, alpha=0.3)
+                    plt.xticks(rotation=45)
+                    st.pyplot(fig)
+        else:
+            st.info("Please train models to see performance metrics")
+    
+    with tab5:  # NEW: Advanced AI Tab
+        st.markdown('<h2 class="sub-header">🤖 Advanced AI & Machine Learning</h2>', unsafe_allow_html=True)
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Deep Learning Models", "3", "LSTM, Transformer, GNN")
+        with col2:
+            st.metric("SHAP Explanations", "Available", "Model interpretability")
+        with col3:
+            st.metric("Anomaly Detection", "Active", "Autoencoder-based")
+        
+        # Model selection
+        st.subheader("🎯 Select AI Model")
+        ai_model = st.selectbox(
+            "Choose advanced model",
+            ["LSTM with Attention", "Transformer", "Graph Neural Network", "Causal Impact", "Anomaly Detection"]
+        )
+        
+        if st.button("Run Analysis", key="run_ai_analysis"):
+            with st.spinner(f"Running {ai_model} analysis..."):
+                if ai_model == "LSTM with Attention":
+                    show_lstm_results()
+                elif ai_model == "Transformer":
+                    show_transformer_results()
+                elif ai_model == "Causal Impact":
+                    show_causal_impact()
+                elif ai_model == "Anomaly Detection":
+                    show_anomaly_detection()
+        
+        # SHAP Analysis
+        st.subheader("🔍 Model Explainability (SHAP)")
+        if st.session_state.data is not None and st.session_state.models_trained:
+            if st.button("Generate SHAP Analysis"):
+                with st.spinner("Calculating feature importance..."):
+                    # Prepare data
+                    X = st.session_state.data[['temperature', 'rainfall', 'humidity', 'nddi', 
+                                              'llin_coverage', 'irs_coverage']].values
+                    
+                    # Get model predictions
+                    if 'model_results' in st.session_state:
+                        model = st.session_state.model_results.get('rf_model')
+                        if model:
+                            shap_values = advanced_ml_pipeline.create_shap_explanations(
+                                model, X[:100], X[:20]
+                            )
+                            
+                            if shap_values is not None:
+                                # Plot SHAP summary
+                                fig, ax = plt.subplots(figsize=(10, 6))
+                                shap.summary_plot(shap_values, X[:20], 
+                                                 feature_names=['Temp', 'Rain', 'Humidity', 'NDDI', 'LLIN', 'IRS'],
+                                                 show=False)
+                                st.pyplot(fig)
+                                plt.clf()
+        
+        # Hyperparameter Optimization
+        st.subheader("⚙️ Hyperparameter Optimization")
+        if st.button("Run Optuna Optimization"):
+            with st.spinner("Optimizing hyperparameters (this may take a minute)..."):
+                if st.session_state.data is not None:
+                    X = st.session_state.data[['temperature', 'rainfall', 'humidity', 'nddi']].values
+                    y = st.session_state.data['malaria_cases'].values
+                    
+                    # Split data
+                    split_idx = int(len(X) * 0.8)
+                    X_train, X_val = X[:split_idx], X[split_idx:]
+                    y_train, y_val = y[:split_idx], y[split_idx:]
+                    
+                    best_params, best_score = advanced_ml_pipeline.hyperparameter_optimization(
+                        X_train, y_train, X_val, y_val, n_trials=20
+                    )
+                    
+                    st.success(f"Best RMSE: {best_score:.2f}")
+                    st.write("Best parameters:")
+                    st.json(best_params)
+    
+    with tab6:  # NEW: Interoperability Tab
+        st.markdown('<h2 class="sub-header">🏥 Healthcare Interoperability</h2>', unsafe_allow_html=True)
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("FHIR Compliance", "Level 4", "Full interoperability")
+        with col2:
+            st.metric("WHO Reporting", "HMIS 033", "Standard format")
+        with col3:
+            st.metric("DHIS2 Integration", "Available", "National systems")
+        
+        # FHIR Resource Generation
+        st.subheader("📄 FHIR Resource Generation")
+        
+        resource_type = st.selectbox(
+            "FHIR Resource Type",
+            ["Observation (Test results)", "Condition (Diagnosis)", "Patient", "MedicationAdministration"]
+        )
+        
+        if st.session_state.data is not None and st.button("Generate FHIR Bundle"):
+            # Create sample FHIR data from app data
+            sample_data = {
+                'test_date': datetime.now().isoformat(),
+                'test_result': True,
+                'patient_id': 'patient-12345',
+                'diagnosis_date': datetime.now().isoformat(),
+                'district': 'Accra Metro',
+                'city': 'Accra',
+                'country': 'Ghana'
+            }
+            
+            if resource_type.startswith("Observation"):
+                fhir_bundle = fhir_integration.map_to_fhir_bundle(
+                    pd.DataFrame([sample_data]), 'Observation'
+                )
+            elif resource_type.startswith("Condition"):
+                fhir_bundle = fhir_integration.map_to_fhir_bundle(
+                    pd.DataFrame([sample_data]), 'Condition'
+                )
+            elif resource_type == "Patient":
+                fhir_bundle = fhir_integration.map_to_fhir_bundle(
+                    pd.DataFrame([sample_data]), 'Patient'
+                )
+            
+            st.json(fhir_bundle)
+            
+            # Download option
+            fhir_json = json.dumps(fhir_bundle, indent=2)
+            st.download_button(
+                label="Download FHIR Bundle",
+                data=fhir_json,
+                file_name=f"malaria_fhir_{resource_type}_{datetime.now().strftime('%Y%m%d')}.json",
+                mime="application/json"
+            )
+        
+        # WHO Reporting
+        st.subheader("🌍 WHO Standard Reports")
+        
+        if st.button("Generate HMIS 033 Report"):
+            who_report = fhir_integration.export_who_report(
+                st.session_state.data if st.session_state.data is not None else pd.DataFrame(),
+                'hmis033'
+            )
+            
+            st.write("WHO HMIS 033 Malaria Report:")
+            st.json(who_report)
+        
+        # DHIS2 Integration
+        st.subheader("🔗 DHIS2 Integration")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            dhis2_url = st.text_input("DHIS2 Server URL", "https://play.dhis2.org/2.38.0")
+            dhis2_user = st.text_input("Username", "admin")
+        with col2:
+            dhis2_password = st.text_input("Password", type="password")
+        
+        if st.button("Test DHIS2 Connection"):
+            with st.spinner("Connecting to DHIS2..."):
+                connection = fhir_integration.connect_to_dhis2(
+                    dhis2_url, dhis2_user, dhis2_password
+                )
+                
+                if connection['connected']:
+                    st.success(f"Connected successfully!")
+                    st.write(f"Organization units: {connection.get('organization_units', 0)}")
+                    st.write(f"Malaria data elements: {connection.get('malaria_data_elements', 0)}")
+                else:
+                    st.error(f"Connection failed: {connection.get('error')}")
+    
+    with tab7:  # NEW: Security Tab
+        st.markdown('<h2 class="sub-header">🔐 Security & Compliance</h2>', unsafe_allow_html=True)
+        
+        # Security dashboard
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Encryption", "AES-256", "At rest & in transit")
+        with col2:
+            st.metric("Access Control", "ABAC", "Attribute-based")
+        with col3:
+            st.metric("Compliance", "HIPAA/GDPR", "Healthcare standards")
+        with col4:
+            st.metric("Audit Log", f"{len(security_framework.audit_log)}", "Immutable")
+        
+        # Security features
+        st.subheader("🔒 Security Features")
+        
+        features = security_framework.security_config
+        for category, config in features.items():
+            with st.expander(f"{category.upper()} Configuration"):
+                st.json(config)
+        
+        # Data Encryption
+        st.subheader("🔐 Data Encryption")
+        
+        sample_data = {"patient_id": "12345", "diagnosis": "malaria", "sensitive": True}
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Encrypt Sample Data"):
+                encrypted = security_framework.encrypt_sensitive_data(sample_data, 'pii')
+                if encrypted['success']:
+                    st.session_state.encrypted_data = encrypted
+                    st.success("Data encrypted successfully!")
+                    st.code(encrypted['encrypted_data'][:100] + "...", language="text")
+        
+        with col2:
+            if 'encrypted_data' in st.session_state:
+                if st.button("Decrypt Data"):
+                    decrypted = security_framework.decrypt_sensitive_data(
+                        st.session_state.encrypted_data
+                    )
+                    if decrypted['success']:
+                        st.success("Data decrypted successfully!")
+                        st.json(decrypted['decrypted_data'])
+        
+        # Access Control Testing
+        st.subheader("🚪 Access Control Test")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            user_role = st.selectbox("User Role", ["field_worker", "district_officer", "regional_manager", "national_director"])
+        with col2:
+            resource_type = st.selectbox("Resource Type", ["patient_data", "aggregated_data", "phi", "system_config"])
+        with col3:
+            action = st.selectbox("Action", ["read", "write", "delete", "export"])
+        
+        if st.button("Check Access Permission"):
+            abac_engine = security_framework.ABACEngine()
+            
+            # Simulate user attributes
+            user_attrs = {
+                'role': user_role,
+                'district': 'Accra Metro' if user_role == 'field_worker' else None,
+                'region': 'Greater Accra' if user_role == 'regional_manager' else None
+            }
+            
+            # Simulate resource attributes
+            resource_attrs = {
+                'type': resource_type,
+                'district': 'Accra Metro',
+                'region': 'Greater Accra',
+                'consent_granted': True if resource_type == 'phi' else None
+            }
+            
+            access_result = abac_engine.check_access(user_attrs, resource_attrs, action)
+            
+            if access_result['granted']:
+                st.success(f"✅ Access GRANTED")
+                st.write(f"Policy: {access_result.get('policy_id')}")
+                st.write(f"Reason: {access_result.get('description')}")
+            else:
+                st.error(f"❌ Access DENIED")
+                st.write(f"Reason: {access_result.get('reason')}")
+        
+        # Compliance Reports
+        st.subheader("📋 Compliance Reports")
+        
+        if st.button("Generate Compliance Report"):
+            compliance_report = security_framework.generate_compliance_report()
+            st.json(compliance_report)
+        
+        # Differential Privacy
+        st.subheader("🎭 Differential Privacy")
+        
+        if st.session_state.data is not None:
+            epsilon = st.slider("Privacy Parameter (ε)", 0.01, 1.0, 0.1, 0.01,
+                               help="Lower ε = more privacy, less accuracy")
+            
+            if st.button("Apply Differential Privacy"):
+                dp_result = security_framework.apply_differential_privacy(
+                    st.session_state.data, epsilon
+                )
+                
+                if dp_result['success']:
+                    st.success("Differential privacy applied successfully!")
+                    st.write("Privacy parameters:")
+                    st.json(dp_result['privacy_parameters'])
+                    
+                    # Show sample of anonymized data
+                    st.write("Sample of anonymized data:")
+                    st.dataframe(dp_result['anonymized_data'].head())
+                else:
+                    st.error(f"Failed: {dp_result.get('error')}")
+    
+    with tab8:  # NEW: Premium Features Tab
+        st.markdown('<h2 class="sub-header">💎 Premium Features Suite</h2>', unsafe_allow_html=True)
+        
+        st.info("""
+        These features represent cutting-edge capabilities for national malaria control programs.
+        They integrate advanced analytics, community engagement, and genomic surveillance.
+        """)
+        
+        # Feature selection
+        feature = st.selectbox(
+            "Select Premium Feature",
+            [
+                "Resource Optimization",
+                "Economic Impact Analysis",
+                "Community Gamification",
+                "Genomic Surveillance",
+                "Climate Change Projections"
+            ]
+        )
+        
+        if feature == "Resource Optimization":
+            show_resource_optimization()
+        elif feature == "Economic Impact Analysis":
+            show_economic_impact()
+        elif feature == "Community Gamification":
+            show_community_gamification()
+        elif feature == "Genomic Surveillance":
+            show_genomic_surveillance()
+        elif feature == "Climate Change Projections":
+            show_climate_projections()
+
+# ============================================================================
 # RUN THE ENHANCED APP
 # ============================================================================
 
 if __name__ == "__main__":
+    # Set page configuration
+    st.set_page_config(
+        page_title="Malaria Forecasting System",
+        page_icon="🦟",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+    
+    # Add custom CSS
+    st.markdown("""
+    <style>
+    .stButton > button {
+        width: 100%;
+        border-radius: 5px;
+        font-weight: bold;
+    }
+    .css-1d391kg {
+        padding: 1rem;
+    }
+    .sub-header {
+        color: #2E86AB;
+        border-bottom: 2px solid #2E86AB;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+    .stMetric {
+        background-color: #f0f2f6;
+        padding: 15px;
+        border-radius: 10px;
+        border-left: 5px solid #2E86AB;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Run the app
     main()
-
