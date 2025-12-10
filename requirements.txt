@@ -11,3 +11,67 @@ notebook
 ipython
 statsmodels
 tqdm
+
+
+# Core Dependencies
+streamlit
+numpy
+pandas
+matplotlib
+seaborn
+scipy
+scikit-learn
+joblib
+plotly
+
+# Advanced ML/AI
+tensorflow
+shap
+optuna
+xgboost
+lightgbm
+networkx
+
+# Security & Encryption
+cryptography
+pycryptodome
+
+# Graph Neural Networks
+torch
+torch-geometric
+
+# Data Processing
+openpyxl
+xlrd
+
+# APIs and Networking
+requests
+httpx
+
+# Database and Storage
+python-dateutil
+pytz
+
+# Statistics and Math
+statsmodels
+
+# Utility Libraries
+typing-extensions
+colorama
+tqdm
+python-dotenv
+
+# Development Tools (optional)
+black
+flake8
+pytest
+
+# Streamlit Extras
+streamlit-aggrid
+streamlit-option-menu
+streamlit-authenticator
+
+# For specific functionality
+pydantic
+fastapi
+uvicorn
