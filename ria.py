@@ -1164,15 +1164,16 @@ def main():
             color = "🔴" if corr_nddi_impact > 0.3 else "🟡" if corr_nddi_impact > 0 else "🟢"
             st.metric(f"{color} NDDI Impact", f"{corr_nddi_impact:.3f}")
         
-        # NDDI distribution summary
+        # NDDI distribution summary - FIXED LINE
         st.markdown("#### 🌵 NDDI Distribution Summary")
         nddi_stats = st.session_state.data['drought_risk'].value_counts().reset_index()
         nddi_stats.columns = ['Drought Risk Level', 'Count']
         
+        # Use a valid color sequence - FIX APPLIED HERE
         fig = px.bar(nddi_stats, x='Drought Risk Level', y='Count', 
                     title='Distribution of Drought Risk Levels',
                     color='Drought Risk Level',
-                    color_discrete_sequence=px.colors.sequential.RdYlBu_r)
+                    color_discrete_sequence=px.colors.qualitative.Set3)  # Changed to valid color sequence
         fig.update_layout(height=300)
         st.plotly_chart(fig, use_container_width=True)
         
